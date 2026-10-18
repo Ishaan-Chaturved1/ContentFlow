@@ -229,7 +229,115 @@ npm test
 
 ---
 
-## 8. API Reference
+## 8. Production Deployment Guide (Render & Vercel)
+
+ContentFlow AI is structured for clean, separated cloud deployment:
+- **Frontend**: Hosted on **Vercel** (Global Edge CDN, automatic SPA rewrites).
+- **Backend**: Hosted on **Render** (FastAPI ASGI web service).
+- **Database**: Ephemeral SQLite for testing, Persistent Disk for single-node SQLite, or Managed PostgreSQL for production resilience.
+
+---
+
+### Database Persistence Analysis
+
+> [!WARNING]
+> **Ephemeral Filesystem on Cloud Containers**:  
+> Render Free Tier web services use an ephemeral disk. Files written locally (such as `./contentflow.db`) will be reset whenever the service restarts, redeploys, or spins down from inactivity.
+
+**Choose your storage strategy:**
+1. **Managed PostgreSQL (Recommended for Production)**:
+   - Create a free database on **Render** (or Supabase / Neon).
+   - Set `DATABASE_URL="postgresql://user:password@host:5432/dbname"` in your Render Environment settings.
+   - The backend includes `psycopg2-binary` and auto-normalizes Render's `postgres://` URLs to `postgresql://`.
+2. **Render Persistent Disk (SQLite)**:
+   - On Render Starter Plan ($7/mo), add a Persistent Disk mounted at `/var/data` (size: 1 GB).
+   - Set `DATABASE_URL="sqlite:////var/data/contentflow.db"`.
+3. **Demo / Ephemeral Testing (SQLite)**:
+   - Leave `DATABASE_URL="sqlite:///./contentflow.db"`. Data will persist during runtime but reset upon container restarts.
+
+---
+
+### Part A: Deploy Backend on Render
+
+1. **Push your code to GitHub**:
+   Ensure all changes are pushed to your repository `https://github.com/Ishaan-Chaturved1/ContentFlow.git`.
+2. **Create Web Service on Render**:
+   - Go to the [Render Dashboard](https://dashboard.render.com/) and click **New + > Web Service**.
+   - Connect your GitHub repository (`ContentFlow`).
+   - Configure settings:
+     | Setting | Value |
+     | :--- | :--- |
+     | **Name** | `contentflow-backend` |
+     | **Region** | Choose closest region (e.g., Oregon, Frankfurt) |
+     | **Branch** | `main` |
+     | **Root Directory** | `backend` |
+     | **Runtime** | `Python 3` |
+     | **Build Command** | `pip install -r requirements.txt` |
+     | **Start Command** | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+     | **Plan** | Free (or Starter if attaching persistent disk) |
+3. **Configure Environment Variables in Render**:
+   In the **Environment** tab, add:
+   | Key | Value | Description |
+   | :--- | :--- | :--- |
+   | `PYTHON_VERSION` | `3.11.9` | Reliable Python runtime version |
+   | `ENVIRONMENT` | `production` | Production mode |
+   | `LLM_PROVIDER` | `gemini` | Enable Gemini generative AI |
+   | `GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model name |
+   | `GEMINI_API_KEY` | *Your Google AI Studio Key* | Secret kept exclusively on backend |
+   | `FRONTEND_URL` | `https://your-app.vercel.app` | Your Vercel frontend URL (set after Part B) |
+   | `DATABASE_URL` | *Your PostgreSQL or SQLite URL* | Connection string |
+4. **Deploy Service**:
+   Click **Create Web Service**. Wait for build completion. Once deployed, note your service URL (e.g. `https://contentflow-backend.onrender.com`).
+5. **Verify Backend Health**:
+   Open `https://contentflow-backend.onrender.com/health` in your browser. It should return `{"status":"healthy","database":"ok","configured_provider":"gemini"}`.
+
+---
+
+### Part B: Deploy Frontend on Vercel
+
+1. **Import Project into Vercel**:
+   - Navigate to [vercel.com/new](https://vercel.com/new).
+   - Select your GitHub repository (`ContentFlow`).
+2. **Configure Project Settings**:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: Click *Edit* and select `frontend`.
+   - **Build Command**: `npm run build` (or leave default `vite build`)
+   - **Output Directory**: `dist`
+3. **Configure Environment Variables in Vercel**:
+   Add the following environment variable:
+   | Key | Value |
+   | :--- | :--- |
+   | `VITE_API_BASE_URL` | `https://contentflow-backend.onrender.com` *(Replace with your real Render URL)* |
+   *(Note: Do NOT add `GEMINI_API_KEY` to Vercel. All AI calls are mediated by the backend.)*
+4. **Deploy**:
+   Click **Deploy**. Vercel will build the frontend and assign an address (e.g. `https://contentflow-ai.vercel.app`).
+   SPA routing is automatically handled via [`frontend/vercel.json`](file:///d:/AIGeneralistIntern/frontend/vercel.json).
+
+---
+
+### Part C: Link CORS Handshake
+
+1. Return to the [Render Dashboard](https://dashboard.render.com/) > `contentflow-backend` > **Environment**.
+2. Update `FRONTEND_URL` with your exact Vercel production URL:
+   ```
+   FRONTEND_URL="https://contentflow-ai.vercel.app"
+   ```
+3. Render will automatically redeploy the backend with the new CORS origin whitelist.
+
+---
+
+### Part D: Live End-to-End Verification Checklist
+
+- [ ] **Backend Health**: `GET https://contentflow-backend.onrender.com/health` returns `status: "healthy"`.
+- [ ] **Swagger Documentation**: Open `https://contentflow-backend.onrender.com/docs`.
+- [ ] **Frontend Load**: Open `https://your-app.vercel.app` - UI renders without console errors.
+- [ ] **Live Campaign Creation**: Click **+ New Campaign**, input a luxury brief, and click **Generate 7-Day Strategy**. Content is generated via `gemini-2.5-flash`.
+- [ ] **Review Workflow**: Edit a post, click **Approve**, click **Reject**.
+- [ ] **CSV Export**: Click **Export CSV** and verify download of formatted social media copy.
+
+---
+
+## 9. API Reference
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
@@ -250,7 +358,7 @@ npm test
 
 ---
 
-## 9. Google Sheets Production Setup Guide
+## 10. Google Sheets Production Setup Guide
 
 To connect the backend to real Google Spreadsheets:
 1. **Google Cloud Console**: Navigate to [console.cloud.google.com](https://console.cloud.google.com) and create a project.
@@ -262,7 +370,7 @@ To connect the backend to real Google Spreadsheets:
 
 ---
 
-## 10. Implemented Features vs. Future Enhancements
+## 11. Implemented Features vs. Future Enhancements
 
 ### Implemented Features
 - [x] Full-stack architecture with FastAPI backend and React + Vite frontend.

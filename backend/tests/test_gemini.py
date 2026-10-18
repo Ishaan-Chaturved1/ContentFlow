@@ -130,9 +130,7 @@ async def test_gemini_provider_invalid_json_output(sample_brief):
 
 def test_api_route_with_gemini_provider_success(client, sample_brief, mock_gemini_success_response):
     """Test FastAPI campaign creation route when LLM_PROVIDER is set to gemini"""
-    with patch.object(settings, "LLM_PROVIDER", "gemini"), \
-         patch.object(settings, "GEMINI_API_KEY", "AIzaLiveTestKey"):
-
+    with patch.dict("os.environ", {"LLM_PROVIDER": "gemini", "AI_PROVIDER": "gemini", "GEMINI_API_KEY": "AIzaLiveTestKey"}):
         with patch("google.genai.Client") as mock_genai_cls:
             mock_client_instance = MagicMock()
             mock_client_instance.aio.models.generate_content = AsyncMock(return_value=mock_gemini_success_response)
@@ -149,9 +147,7 @@ def test_api_route_with_gemini_provider_success(client, sample_brief, mock_gemin
 
 def test_api_route_with_gemini_provider_failure_returns_502(client, sample_brief):
     """Test FastAPI campaign creation returns 502 with clear error when Gemini fails"""
-    with patch.object(settings, "LLM_PROVIDER", "gemini"), \
-         patch.object(settings, "GEMINI_API_KEY", "AIzaLiveTestKey"):
-
+    with patch.dict("os.environ", {"LLM_PROVIDER": "gemini", "AI_PROVIDER": "gemini", "GEMINI_API_KEY": "AIzaLiveTestKey"}):
         with patch("google.genai.Client") as mock_genai_cls:
             mock_client_instance = MagicMock()
             api_error = APIError(code=429, response_json={"error": {"message": "RESOURCE_EXHAUSTED: rate limit exceeded"}})

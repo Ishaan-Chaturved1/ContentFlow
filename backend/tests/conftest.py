@@ -18,6 +18,14 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def default_test_env(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "demo")
+    monkeypatch.setenv("AI_PROVIDER", "demo")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
+    yield
+
+
 @pytest.fixture(scope="function")
 def db_session():
     Base.metadata.create_all(bind=engine)

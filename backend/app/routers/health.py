@@ -1,21 +1,22 @@
+import logging
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
-from app.config import settings, get_settings
+from app.config import get_settings
 from app.services.llm_provider import get_llm_provider
 
-router = APIRouter(prefix="/api", tags=["Health"])
+logger = logging.getLogger("contentflow.health")
+router = APIRouter(tags=["Health"])
 
 
-@router.get("/health")
-def health_check(db: Session = Depends(get_db)):
-    # Verify DB connectivity
+def run_health_check(db: Session):
     db_status = "ok"
     try:
         db.execute(text("SELECT 1"))
     except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+        logger.error(f"Health check database ping failed: {e}")
+        db_status = "unhealthy: database unreachable"
 
     current_settings = get_settings()
     provider = get_llm_provider()
@@ -24,9 +25,20 @@ def health_check(db: Session = Depends(get_db)):
     return {
         "status": "healthy" if db_status == "ok" else "degraded",
         "database": db_status,
-        "configured_provider": current_settings.LLM_PROVIDER,
+        "configured_provider": current_settings.active_llm_provider,
         "active_provider": provider.__class__.__name__,
         "is_demo_mode": is_demo,
         "environment": current_settings.ENVIRONMENT,
         "project": current_settings.PROJECT_NAME
     }
+
+
+@router.get("/api/health")
+def api_health(db: Session = Depends(get_db)):
+    return run_health_check(db)
+
+
+@router.get("/health")
+def root_health(db: Session = Depends(get_db)):
+    """Convenience health endpoint for cloud hosting providers (e.g. Render)."""
+    return run_health_check(db)

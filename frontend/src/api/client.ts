@@ -7,7 +7,8 @@ import type {
   SheetsSyncResult,
 } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE = rawApiBase.replace(/\/+$/, '');
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {

@@ -298,7 +298,7 @@ Ensure each post has: day_number (1..{brief.number_of_days}), scheduled_date, pl
             elif status_code in (400, 401, 403) or "API_KEY_INVALID" in err_msg or "api key" in err_msg.lower():
                 raise RuntimeError(
                     f"Gemini API authentication failed ({status_code}): Invalid or unauthorized API key. "
-                    "Verify GEMINI_API_KEY in backend/.env."
+                    "Verify GEMINI_API_KEY in backend/.env or Render dashboard environment settings."
                 )
             elif status_code in (500, 503) or "UNAVAILABLE" in err_msg:
                 raise RuntimeError(
@@ -392,7 +392,7 @@ def get_llm_provider() -> BaseLLMProvider:
     """
     from app.config import get_settings
     current_settings = get_settings()
-    provider_name = current_settings.LLM_PROVIDER.lower().strip()
+    provider_name = current_settings.active_llm_provider
 
     if provider_name == "gemini":
         return GeminiProvider(
