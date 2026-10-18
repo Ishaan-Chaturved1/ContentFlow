@@ -237,11 +237,25 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleExportCsv = async (approvedOnly: boolean) => {
-    if (!activeCampaign) return;
+  const handleExportCsv = async (
+    targetOrApprovedOnly: boolean | number,
+    maybeApprovedOnly?: boolean
+  ) => {
+    let targetId: number | null = null;
+    let approvedOnly = true;
+
+    if (typeof targetOrApprovedOnly === 'number') {
+      targetId = targetOrApprovedOnly;
+      approvedOnly = maybeApprovedOnly !== undefined ? maybeApprovedOnly : true;
+    } else {
+      targetId = activeCampaign ? activeCampaign.id : null;
+      approvedOnly = targetOrApprovedOnly;
+    }
+
+    if (!targetId) return;
     setIsExporting(true);
     try {
-      await api.exportCampaignCsv(activeCampaign.id, approvedOnly);
+      await api.exportCampaignCsv(targetId, approvedOnly);
       addToast(
         'success',
         approvedOnly
@@ -249,7 +263,7 @@ export const App: React.FC = () => {
           : 'Complete campaign exported to CSV successfully.'
       );
     } catch (err: any) {
-      addToast('error', `Export failed: ${err.message}`);
+      addToast('error', `CSV Export failed: ${err.message}`);
     } finally {
       setIsExporting(false);
     }
@@ -286,6 +300,7 @@ export const App: React.FC = () => {
         setCurrentView={setCurrentView}
         activeCampaign={activeCampaign}
         onOpenCreateModal={() => setIsCreateModalOpen(true)}
+        onOpenIntegrations={() => setIsSheetsModalOpen(true)}
         onLoadDemo={handleSeedDemo}
         isSeedingDemo={isSeedingDemo}
         health={health}
@@ -308,7 +323,7 @@ export const App: React.FC = () => {
             onApprovePost={handleApprovePost}
             onRejectPost={handleRejectPost}
             onResetPostToPending={handleResetPostToPending}
-            onExportCsv={handleExportCsv}
+            onExportCsv={(approvedOnly) => handleExportCsv(approvedOnly)}
             onRegenerate={handleRegenerate}
             onOpenGoogleSheets={() => setIsSheetsModalOpen(true)}
             isRegenerating={isRegenerating}
@@ -322,6 +337,8 @@ export const App: React.FC = () => {
             onOpenCreateModal={() => setIsCreateModalOpen(true)}
             onLoadDemo={handleSeedDemo}
             onDeleteCampaign={handleDeleteCampaign}
+            onExportCsv={handleExportCsv}
+            onOpenIntegrations={() => setIsSheetsModalOpen(true)}
             isSeedingDemo={isSeedingDemo}
           />
         )}
@@ -343,14 +360,13 @@ export const App: React.FC = () => {
         isSaving={isSavingPost}
       />
 
-      {activeCampaign && (
-        <GoogleSheetsModal
-          isOpen={isSheetsModalOpen}
-          onClose={() => setIsSheetsModalOpen(false)}
-          campaign={activeCampaign}
-          onSync={handleSyncGoogleSheets}
-        />
-      )}
+      <GoogleSheetsModal
+        isOpen={isSheetsModalOpen}
+        onClose={() => setIsSheetsModalOpen(false)}
+        campaign={activeCampaign}
+        onSync={handleSyncGoogleSheets}
+        onExportCsv={(approvedOnly) => handleExportCsv(approvedOnly)}
+      />
 
       <ApiSetupModal
         isOpen={isApiSetupOpen}

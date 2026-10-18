@@ -123,13 +123,13 @@ export const ContentCalendar: React.FC<ContentCalendarProps> = ({
               <span>Export All ({posts.length})</span>
             </button>
 
-            {/* Google Sheets Modal Trigger */}
+            {/* Integrations Modal Trigger */}
             <button
               onClick={onOpenGoogleSheets}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-xs font-medium hover:bg-emerald-100 transition-all shadow-subtle"
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-emerald-300/80 bg-emerald-50 text-emerald-900 text-xs font-medium hover:bg-emerald-100 transition-all shadow-subtle"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
-              <span>Google Sheets Sync</span>
+              <span>Integrations & Cloud Sync</span>
             </button>
 
             {/* Regenerate LLM Content */}

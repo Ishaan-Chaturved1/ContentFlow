@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   FileText,
   Clock,
@@ -7,9 +7,11 @@ import {
   FolderPlus,
   ArrowRight,
   Sparkles,
-  Layers,
-  ChevronRight,
-  Trash2
+  Trash2,
+  Download,
+  FileSpreadsheet,
+  ChevronDown,
+  Loader2,
 } from 'lucide-react';
 import type { Campaign, DashboardStats } from '../types';
 
@@ -20,6 +22,8 @@ interface DashboardOverviewProps {
   onOpenCreateModal: () => void;
   onLoadDemo: () => void;
   onDeleteCampaign: (id: number) => void;
+  onExportCsv?: (campaignId: number, approvedOnly: boolean) => Promise<void>;
+  onOpenIntegrations?: () => void;
   isSeedingDemo: boolean;
 }
 
@@ -30,12 +34,28 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   onOpenCreateModal,
   onLoadDemo,
   onDeleteCampaign,
+  onExportCsv,
+  onOpenIntegrations,
   isSeedingDemo,
 }) => {
+  const [exportingCampId, setExportingCampId] = useState<number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<number | null>(null);
+
   const totalPosts = stats?.total_generated_posts ?? 0;
   const pendingPosts = stats?.posts_awaiting_review ?? 0;
   const approvedPosts = stats?.approved_posts ?? 0;
   const rejectedPosts = stats?.rejected_posts ?? 0;
+
+  const handleQuickExport = async (campaignId: number, approvedOnly: boolean) => {
+    if (!onExportCsv) return;
+    setExportingCampId(campaignId);
+    setOpenDropdownId(null);
+    try {
+      await onExportCsv(campaignId, approvedOnly);
+    } finally {
+      setExportingCampId(null);
+    }
+  };
 
   return (
     <div className="space-y-10">
@@ -52,7 +72,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <p className="mt-4 text-base sm:text-lg text-charcoal-600 leading-relaxed max-w-2xl">
             Generate 7-day structured content calendars for high-end interior designers, bespoke
             furniture ateliers, and architectural studios. Review copy, approve creative direction,
-            and export ready-to-publish campaigns.
+            and export ready-to-publish campaigns with zero-config CSV delivery.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -73,19 +93,26 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <Sparkles className="w-4 h-4 text-taupe-500" />
               <span>{isSeedingDemo ? 'Loading Maison Demo...' : 'Load Maison Living Demo'}</span>
             </button>
+
+            {onOpenIntegrations && (
+              <button
+                onClick={onOpenIntegrations}
+                className="inline-flex items-center gap-2 px-4 py-3.5 rounded-xl border border-borderMuted bg-ivory-100/80 text-charcoal-700 font-medium hover:bg-ivory-200 transition-all text-sm"
+              >
+                <Download className="w-4 h-4 text-olive-700" />
+                <span>Export & Integrations</span>
+              </button>
+            )}
           </div>
         </div>
-
-        {/* Decorative corner accent */}
-        <div className="absolute top-0 right-0 -mt-12 -mr-12 w-96 h-96 rounded-full bg-olive-100/40 blur-3xl pointer-events-none" />
       </div>
 
-      {/* Metric Cards Row */}
+      {/* Analytics KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Total Posts */}
+        {/* Total Generated Posts */}
         <div className="bg-white rounded-xl border border-borderMuted p-6 shadow-subtle">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-charcoal-500">
               Total Generated
             </span>
             <div className="w-8 h-8 rounded-lg bg-ivory-200 flex items-center justify-center text-charcoal-700">
@@ -153,43 +180,57 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div>
             <h2 className="font-editorial text-2xl font-bold text-charcoal-900">Recent Campaigns</h2>
             <p className="text-xs sm:text-sm text-charcoal-500">
-              Active luxury studio campaigns stored in your local SQLite workspace.
+              Active luxury studio campaigns stored in your SQLite database.
             </p>
           </div>
 
-          <button
-            onClick={onOpenCreateModal}
-            className="text-xs sm:text-sm font-medium text-olive-700 hover:text-olive-800 flex items-center gap-1.5"
-          >
-            <span>+ New Campaign</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenIntegrations && (
+              <button
+                onClick={onOpenIntegrations}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-borderMuted bg-white text-xs font-medium text-charcoal-700 hover:bg-ivory-100 transition-colors"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Integration Settings</span>
+              </button>
+            )}
+            <button
+              onClick={onOpenCreateModal}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-olive-700 text-white text-xs font-medium hover:bg-olive-800 transition-colors shadow-subtle"
+            >
+              <FolderPlus className="w-3.5 h-3.5" />
+              <span>New Campaign</span>
+            </button>
+          </div>
         </div>
 
         {campaigns.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-dashed border-borderMuted p-12 text-center max-w-lg mx-auto">
-            <div className="w-12 h-12 rounded-full bg-ivory-200 text-charcoal-600 flex items-center justify-center mx-auto mb-4">
-              <Layers className="w-6 h-6" />
+          <div className="bg-white rounded-2xl border border-dashed border-borderMuted p-12 text-center space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-ivory-200 text-charcoal-500 flex items-center justify-center mx-auto">
+              <FolderPlus className="w-6 h-6" />
             </div>
-            <h3 className="font-editorial text-xl font-semibold text-charcoal-900">
-              No Campaigns Yet
-            </h3>
-            <p className="mt-2 text-sm text-charcoal-500">
-              Enter a brand brief to generate a 7-day architectural social media plan or test with our sample studio.
-            </p>
-            <div className="mt-6 flex items-center justify-center gap-3">
+            <div className="max-w-md mx-auto">
+              <h3 className="font-editorial text-lg font-bold text-charcoal-900">
+                No active campaigns found
+              </h3>
+              <p className="text-xs text-charcoal-500 mt-1">
+                Begin by creating a brand brief for an architectural studio or load our curated Maison
+                Living Studio luxury demo.
+              </p>
+            </div>
+            <div className="flex justify-center gap-3 pt-2">
               <button
                 onClick={onOpenCreateModal}
-                className="px-4 py-2.5 rounded-lg bg-charcoal-900 text-ivory-100 text-xs font-medium hover:bg-charcoal-800 transition-colors"
+                className="px-4 py-2 rounded-lg bg-charcoal-900 text-ivory-100 text-xs font-medium hover:bg-charcoal-800 transition-colors"
               >
                 Create Campaign
               </button>
               <button
                 onClick={onLoadDemo}
                 disabled={isSeedingDemo}
-                className="px-4 py-2.5 rounded-lg border border-borderMuted bg-ivory-50 text-charcoal-800 text-xs font-medium hover:bg-ivory-200 transition-colors"
+                className="px-4 py-2 rounded-lg border border-borderMuted bg-ivory-100 text-charcoal-800 text-xs font-medium hover:bg-ivory-200 transition-colors"
               >
-                {isSeedingDemo ? 'Loading...' : 'Load Maison Studio Demo'}
+                Load Maison Demo
               </button>
             </div>
           </div>
@@ -198,11 +239,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             {campaigns.map((camp) => {
               const approvalRate =
                 camp.total_posts > 0 ? Math.round((camp.approved_posts / camp.total_posts) * 100) : 0;
+              const isExportingThis = exportingCampId === camp.id;
+              const isDropdownOpen = openDropdownId === camp.id;
 
               return (
                 <div
                   key={camp.id}
-                  className="bg-white rounded-xl border border-borderMuted p-6 shadow-subtle hover:shadow-elevated transition-all flex flex-col justify-between group"
+                  className="bg-white rounded-xl border border-borderMuted p-6 shadow-subtle hover:shadow-elevated transition-all flex flex-col justify-between group relative"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -283,14 +326,80 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
                     </div>
                   </div>
 
-                  {/* Open Calendar Action */}
-                  <div className="mt-6 pt-4 border-t border-borderMuted/60 flex items-center justify-between">
-                    <span className="text-[11px] text-charcoal-400">
-                      Created {new Date(camp.created_at).toLocaleDateString()}
-                    </span>
+                  {/* Actions Bar: Obvious Export CSV + Open Calendar */}
+                  <div className="mt-6 pt-4 border-t border-borderMuted/60 flex items-center justify-between gap-2">
+                    {/* Obvious Export CSV Action with Dropdown Options */}
+                    <div className="relative">
+                      <div className="inline-flex rounded-lg shadow-sm">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleQuickExport(camp.id, camp.approved_posts > 0);
+                          }}
+                          disabled={isExportingThis || camp.total_posts === 0}
+                          title={
+                            camp.approved_posts > 0
+                              ? `Export ${camp.approved_posts} approved posts to CSV`
+                              : `Export all ${camp.total_posts} posts to CSV`
+                          }
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-l-lg border border-borderMuted bg-ivory-50 text-charcoal-700 hover:bg-olive-50 hover:border-olive-300 hover:text-olive-900 text-xs font-medium transition-all disabled:opacity-40"
+                        >
+                          {isExportingThis ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-olive-700" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5 text-olive-700" />
+                          )}
+                          <span>
+                            Export CSV (
+                            {camp.approved_posts > 0 ? `${camp.approved_posts} Approved` : `${camp.total_posts} All`}
+                            )
+                          </span>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenDropdownId(isDropdownOpen ? null : camp.id);
+                          }}
+                          className="px-1.5 py-1.5 border border-l-0 border-borderMuted bg-ivory-50 text-charcoal-600 hover:bg-ivory-200 rounded-r-lg text-xs"
+                          title="More export options"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Export Dropdown Menu */}
+                      {isDropdownOpen && (
+                        <div className="absolute left-0 bottom-full mb-1 w-48 rounded-xl bg-white border border-borderMuted shadow-elevated p-1 z-20 animate-fade-in text-xs">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickExport(camp.id, true);
+                            }}
+                            disabled={camp.approved_posts === 0}
+                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-olive-50 text-charcoal-800 hover:text-olive-900 flex items-center justify-between disabled:opacity-40"
+                          >
+                            <span>Approved Only</span>
+                            <span className="font-semibold text-olive-700">({camp.approved_posts})</span>
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleQuickExport(camp.id, false);
+                            }}
+                            disabled={camp.total_posts === 0}
+                            className="w-full text-left px-3 py-2 rounded-lg hover:bg-ivory-100 text-charcoal-800 flex items-center justify-between disabled:opacity-40"
+                          >
+                            <span>All Campaign Posts</span>
+                            <span className="font-semibold text-charcoal-600">({camp.total_posts})</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Open Calendar */}
                     <button
                       onClick={() => onSelectCampaign(camp)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal-900 hover:text-olive-800 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-charcoal-900 hover:text-olive-800 transition-colors shrink-0"
                     >
                       <span>Open Calendar</span>
                       <ArrowRight className="w-3.5 h-3.5" />

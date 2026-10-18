@@ -1,5 +1,4 @@
-import React from 'react';
-import { Sparkles, Plus, LayoutDashboard, Calendar } from 'lucide-react';
+import { Sparkles, Plus, LayoutDashboard, Calendar, FileSpreadsheet } from 'lucide-react';
 import type { Campaign, HealthStatus } from '../types';
 
 interface NavbarProps {
@@ -7,6 +6,7 @@ interface NavbarProps {
   setCurrentView: (view: 'dashboard' | 'calendar') => void;
   activeCampaign: Campaign | null;
   onOpenCreateModal: () => void;
+  onOpenIntegrations: () => void;
   onLoadDemo: () => void;
   isSeedingDemo: boolean;
   health: HealthStatus | null;
@@ -17,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentView,
   activeCampaign,
   onOpenCreateModal,
+  onOpenIntegrations,
   onLoadDemo,
   isSeedingDemo,
 }) => {
@@ -77,6 +78,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
           )}
+
+          <button
+            onClick={onOpenIntegrations}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium text-charcoal-600 hover:text-charcoal-900 hover:bg-ivory-100 transition-all"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-700" />
+            <span>Integrations</span>
+          </button>
         </nav>
       </div>
 

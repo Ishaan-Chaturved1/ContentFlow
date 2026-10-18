@@ -196,9 +196,9 @@ npm run dev -- --host 127.0.0.1 --port 5173
 
 ---
 
-## 7. Automated Test Suite (21 Tests Passing)
+## 7. Automated Test Suite (25 Tests Passing)
 
-The backend includes 21 comprehensive tests with `pytest` using an isolated in-memory SQLite database:
+The backend includes 25 comprehensive tests with `pytest` using an isolated in-memory SQLite database:
 
 ```powershell
 cd d:\AIGeneralistIntern\backend
@@ -206,7 +206,14 @@ cd d:\AIGeneralistIntern\backend
 ```
 
 ### Test Coverage Breakdown:
-- `tests/test_gemini.py`:
+- `tests/test_export.py` (6 tests):
+  - `test_export_csv_workflow`: Validates full CSV lifecycle, approved-only filtering, and all-posts export.
+  - `test_csv_escaping_special_characters`: Validates RFC 4180 escaping with multiline captions, double quotes (`"monolith"`), commas, emojis, semicolons, and carriage returns without corruption.
+  - `test_csv_export_empty_campaign`: Verifies exporting an empty campaign (0 posts) returns HTTP 200, header row only, and `X-Exported-Count: 0`.
+  - `test_google_sheets_missing_credentials_status`: Verifies `/api/integrations/google-sheets/status` reports `"Not Configured"` when credentials are absent.
+  - `test_google_sheets_error_status_when_file_missing`: Verifies `/api/integrations/google-sheets/status` reports `"Error"` when the service account path is missing on disk.
+  - `test_google_sheets_sync_never_simulates_success`: Asserts that sync requests strictly reject without credentials and never simulate fictitious cloud synchronization.
+- `tests/test_gemini.py` (8 tests):
   - `test_gemini_provider_missing_key_raises_error`: Validates descriptive exception when API key is missing.
   - `test_gemini_provider_success`: Mocks `google-genai` SDK structured generation and verifies 7 posts with correct attributes.
   - `test_gemini_provider_quota_rate_limit_error`: Mocks `APIError` 429 quota exhaustion and verifies user-friendly message.
@@ -215,17 +222,16 @@ cd d:\AIGeneralistIntern\backend
   - `test_gemini_provider_invalid_json_output`: Mocks malformed LLM response and asserts Pydantic validation catches it.
   - `test_api_route_with_gemini_provider_success`: Tests full FastAPI campaign creation route with Gemini.
   - `test_api_route_with_gemini_provider_failure_returns_502`: Tests proper HTTP 502 error return on upstream model failure without creating zombie DB records.
-- `tests/test_validation.py`: Pydantic field lengths, invalid platforms, out-of-range days.
-- `tests/test_campaigns.py`: Health checks, campaign creation, calendar generation, dashboard metrics, campaign deletion.
-- `tests/test_posts.py`: In-place editing, approval, rejection, and reset workflows.
-- `tests/test_export.py`: RFC 4180 CSV escaping, approved-only filtering, Google Sheets stub validation.
+- `tests/test_validation.py` (4 tests): Pydantic field lengths, invalid platforms, out-of-range days.
+- `tests/test_campaigns.py` (5 tests): Health checks, campaign creation, calendar generation, dashboard metrics, campaign deletion.
+- `tests/test_posts.py` (2 tests): In-place editing, approval, rejection, and reset workflows.
 
 ### Frontend Typecheck & Build Validation:
 ```powershell
 cd d:\AIGeneralistIntern\frontend
-npm test
+npm run build
 ```
-*Validates zero TypeScript errors and generates the production bundle.*
+*Validates zero TypeScript errors and generates the production bundle in `dist/`.*
 
 ---
 
@@ -352,9 +358,12 @@ ContentFlow AI is structured for clean, separated cloud deployment:
 | `POST` | `/api/posts/{id}/approve` | Approve post for export |
 | `POST` | `/api/posts/{id}/reject` | Reject post |
 | `POST` | `/api/posts/{id}/pending` | Move post back to Pending Review |
-| `GET` | `/api/campaigns/{id}/export` | Export calendar to CSV (`?approved_only=true/false`) |
-| `POST` | `/api/campaigns/{id}/sync-sheets`| Test/run Google Sheets sync interface |
+| `GET` | `/api/campaigns/{id}/export` | Export calendar to RFC 4180 CSV (`?approved_only=true/false`) |
+| `POST` | `/api/campaigns/{id}/sync-sheets`| Synchronize or test Google Sheets interface |
 | `POST` | `/api/campaigns/seed-demo` | 1-click seed for Maison Living Studio sample campaign |
+| `GET` | `/api/integrations/status` | Returns verified status for CSV export and Google Sheets |
+| `GET` | `/api/integrations/google-sheets/status` | Live verification of Google Cloud Service Account credentials |
+| `POST` | `/api/integrations/google-sheets/test-connection` | Validate spreadsheet ID and credentials without faking sync |
 
 ---
 
@@ -380,10 +389,10 @@ To connect the backend to real Google Spreadsheets:
 - [x] Labelled DEMO MODE with curated Maison Living Studio luxury campaign data.
 - [x] SQLite persistence for campaigns and posts across server restarts.
 - [x] Interactive human review workflow (Approve, Reject, Reset, Edit).
-- [x] Multi-tier RFC 4180 CSV export (Approved Only vs. Complete Campaign).
+- [x] Multi-tier RFC 4180 CSV export (Approved Only vs. Complete Campaign) with quotation & multiline escaping.
 - [x] Search, platform filters, status filters, and table/grid view toggles.
-- [x] Verified Google Sheets service interface and architecture documentation modal.
-- [x] 21 passing automated tests in `pytest` and frontend TypeScript validation.
+- [x] Verified Google Sheets service interface and live configuration status reporting (`Not Configured`, `Connected`, `Error`).
+- [x] 25 passing automated tests in `pytest` and frontend TypeScript validation.
 
 ### Future Enhancements (Roadmap)
 - [ ] Direct publishing integration with Instagram Graph API and LinkedIn Community API.

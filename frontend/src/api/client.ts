@@ -5,6 +5,8 @@ import type {
   HealthStatus,
   Post,
   SheetsSyncResult,
+  GoogleSheetsStatusInfo,
+  IntegrationsSummary,
 } from '../types';
 
 const rawApiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -151,4 +153,24 @@ export const api = {
     });
     return handleResponse<SheetsSyncResult>(res);
   },
+
+  async getIntegrationsSummary(): Promise<IntegrationsSummary> {
+    const res = await fetch(`${API_BASE}/api/integrations/status`);
+    return handleResponse<IntegrationsSummary>(res);
+  },
+
+  async getGoogleSheetsStatus(): Promise<GoogleSheetsStatusInfo> {
+    const res = await fetch(`${API_BASE}/api/integrations/google-sheets/status`);
+    return handleResponse<GoogleSheetsStatusInfo>(res);
+  },
+
+  async testGoogleSheetsConnection(spreadsheetId?: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/api/integrations/google-sheets/test-connection`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spreadsheet_id: spreadsheetId || null }),
+    });
+    return handleResponse<any>(res);
+  },
 };
+

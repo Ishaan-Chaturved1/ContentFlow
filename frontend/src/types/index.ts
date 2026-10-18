@@ -1,5 +1,6 @@
 export type PlatformType = 'Instagram' | 'LinkedIn';
 export type PostStatus = 'Pending Review' | 'Approved' | 'Rejected';
+export type IntegrationState = 'Not Configured' | 'Connected' | 'Error';
 
 export interface Post {
   id: number;
@@ -74,8 +75,30 @@ export interface HealthStatus {
 
 export interface SheetsSyncResult {
   success: boolean;
+  status?: IntegrationState | string;
   message: string;
   spreadsheet_url?: string;
   rows_synced: number;
   setup_guide_required: boolean;
+}
+
+export interface GoogleSheetsStatusInfo {
+  provider: 'google_sheets';
+  status: IntegrationState;
+  service_account_configured: boolean;
+  service_account_email?: string;
+  service_account_path?: string;
+  error_details?: string;
+  message: string;
+}
+
+export interface IntegrationsSummary {
+  csv_export: {
+    provider: 'csv_export';
+    status: 'Ready';
+    is_primary: boolean;
+    description: string;
+    requires_credentials: boolean;
+  };
+  google_sheets: GoogleSheetsStatusInfo;
 }
