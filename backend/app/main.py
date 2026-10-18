@@ -41,10 +41,11 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS configuration: strict whitelist of allowed frontend origins (local + production Vercel)
+# CORS configuration: whitelist configured origins + any Vercel deployment (production & preview)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.get_allowed_origins(),
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
